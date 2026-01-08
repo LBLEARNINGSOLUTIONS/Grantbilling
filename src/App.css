@@ -1,0 +1,627 @@
+/**
+ * Billing Builder Styles
+ * Simple, clean CSS focused on table readability and copy-paste friendliness
+ */
+
+/* =============================================================================
+   CSS Variables
+   ============================================================================= */
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #f59e0b;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-500: #6b7280;
+  --color-gray-700: #374151;
+  --color-gray-900: #111827;
+  --border-radius: 8px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* =============================================================================
+   Reset and Base
+   ============================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-gray-900);
+  background-color: var(--color-gray-50);
+}
+
+/* =============================================================================
+   App Layout
+   ============================================================================= */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background-color: white;
+  border-bottom: 1px solid var(--color-gray-200);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.app-main {
+  flex: 1;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.app-footer {
+  background-color: white;
+  border-top: 1px solid var(--color-gray-200);
+  padding: 12px 24px;
+  text-align: center;
+}
+
+.app-footer p {
+  margin: 0;
+  color: var(--color-gray-500);
+  font-size: 13px;
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================= */
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.reset-button {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--border-radius);
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.reset-button:hover {
+  background-color: var(--color-gray-200);
+}
+
+/* =============================================================================
+   File Upload Zone
+   ============================================================================= */
+
+.upload-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  margin-bottom: 24px;
+}
+
+.upload-section.compact {
+  min-height: auto;
+  margin-bottom: 24px;
+}
+
+.upload-section.compact .file-upload-zone {
+  min-height: 120px;
+  max-width: 100%;
+}
+
+.upload-section.compact .upload-content {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-section.compact .upload-icon {
+  margin-bottom: 0;
+}
+
+.upload-section.compact .upload-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.upload-section.compact .upload-main-text {
+  font-size: 14px;
+  margin: 0;
+}
+
+.upload-section.compact .upload-sub-text,
+.upload-section.compact .upload-hint {
+  display: none;
+}
+
+.file-upload-zone {
+  width: 100%;
+  max-width: 600px;
+  min-height: 300px;
+  border: 2px dashed var(--color-gray-300);
+  border-radius: var(--border-radius);
+  background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone:focus {
+  border-color: var(--color-primary);
+  background-color: var(--color-gray-50);
+}
+
+.file-upload-zone.drag-active {
+  border-color: var(--color-primary);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.file-upload-zone.processing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.upload-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.upload-icon {
+  color: var(--color-gray-300);
+  margin-bottom: 16px;
+}
+
+.file-upload-zone:hover .upload-icon,
+.file-upload-zone.drag-active .upload-icon {
+  color: var(--color-primary);
+}
+
+.upload-main-text {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--color-gray-700);
+  margin: 0 0 8px 0;
+}
+
+.upload-sub-text {
+  font-size: 14px;
+  color: var(--color-gray-500);
+  margin: 0 0 16px 0;
+}
+
+.upload-hint {
+  font-size: 13px;
+  color: var(--color-gray-400);
+  margin: 0;
+}
+
+.upload-text {
+  font-size: 16px;
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+/* =============================================================================
+   Error Banner
+   ============================================================================= */
+
+.error-banner {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--color-error);
+  padding: 16px 20px;
+  border-radius: var(--border-radius);
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.error-dismiss {
+  background-color: white;
+  border: 1px solid #fecaca;
+  color: var(--color-error);
+  border-radius: var(--border-radius);
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+.error-dismiss:hover {
+  background-color: #fef2f2;
+}
+
+/* =============================================================================
+   Summary Bar
+   ============================================================================= */
+
+.summary-section {
+  margin-bottom: 24px;
+}
+
+.summary-bar {
+  background-color: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-label {
+  color: var(--color-gray-500);
+}
+
+.summary-value {
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+.summary-stats {
+  display: flex;
+  gap: 32px;
+}
+
+.summary-stat {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-stat.valid .stat-value {
+  color: var(--color-success);
+}
+
+.summary-stat.exception .stat-value {
+  color: var(--color-error);
+}
+
+/* =============================================================================
+   Export Section
+   ============================================================================= */
+
+.export-section {
+  margin-bottom: 24px;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.export-button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.export-button:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.export-button:disabled {
+  background-color: var(--color-gray-300);
+  cursor: not-allowed;
+}
+
+.export-button.csv {
+  background-color: var(--color-success);
+}
+
+.export-button.csv:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+.export-button.excel {
+  background-color: #059669;
+}
+
+.export-button.excel:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+/* =============================================================================
+   Tabs
+   ============================================================================= */
+
+.tabs-container {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-gray-200);
+  margin-bottom: 0;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-gray-500);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s ease;
+}
+
+.tab-button:hover {
+  color: var(--color-gray-700);
+}
+
+.tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab-count {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tab-button.active .tab-count {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary);
+}
+
+.tab-count.has-exceptions {
+  background-color: #fef2f2;
+  color: var(--color-error);
+}
+
+/* =============================================================================
+   Data Tables
+   ============================================================================= */
+
+.data-section {
+  background-color: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-panel {
+  padding: 0;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.billing-table,
+.exceptions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.billing-table th,
+.billing-table td,
+.exceptions-table th,
+.exceptions-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-gray-100);
+  white-space: nowrap;
+}
+
+.billing-table th,
+.exceptions-table th {
+  background-color: var(--color-gray-50);
+  font-weight: 600;
+  color: var(--color-gray-700);
+  border-bottom: 1px solid var(--color-gray-200);
+  position: sticky;
+  top: 0;
+}
+
+.billing-table tbody tr:hover,
+.exceptions-table tbody tr:hover {
+  background-color: var(--color-gray-50);
+}
+
+.row-num-header,
+.row-num {
+  color: var(--color-gray-400);
+  font-size: 12px;
+  width: 40px;
+  text-align: center;
+}
+
+/* Exceptions table specific */
+.exceptions-table .exception-row {
+  background-color: #fef2f2;
+}
+
+.exceptions-table .exception-row:hover {
+  background-color: #fee2e2;
+}
+
+.issues-header {
+  min-width: 300px;
+}
+
+.issues-cell {
+  color: var(--color-error);
+  font-size: 12px;
+  white-space: normal;
+  max-width: 400px;
+}
+
+/* Empty table messages */
+.empty-table-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-gray-500);
+}
+
+.empty-table-message p {
+  margin: 0;
+}
+
+.empty-table-message .empty-hint {
+  font-size: 13px;
+  color: var(--color-gray-400);
+  margin-top: 8px;
+}
+
+.empty-table-message.success {
+  color: var(--color-success);
+}
+
+.empty-table-message.success .empty-hint {
+  color: var(--color-gray-500);
+}
+
+/* =============================================================================
+   Pagination
+   ============================================================================= */
+
+.table-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: var(--color-gray-600);
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  background-color: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--color-gray-700);
+  transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--color-gray-50);
+  border-color: var(--color-gray-400);
+}
+
+.pagination-btn:disabled {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-400);
+  cursor: not-allowed;
+}
+
+.pagination-current {
+  font-size: 13px;
+  color: var(--color-gray-700);
+  padding: 0 8px;
+  font-weight: 500;
+}
+
+/* =============================================================================
+   Responsive
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .summary-bar {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .export-buttons {
+    flex-direction: column;
+  }
+
+  .summary-stats {
+    gap: 24px;
+  }
+}
