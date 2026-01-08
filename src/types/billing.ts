@@ -158,3 +158,28 @@ export interface ProcessingResult {
   exceptionRows: ExceptionRow[];
   summary: ProcessingSummary;
 }
+
+// =============================================================================
+// DAILY TRUCK SUMMARY TYPES
+// =============================================================================
+
+/**
+ * Summary row for a single truck's total hours
+ */
+export interface TruckSummaryRow {
+  truckNumber: string;
+  truckType: string;
+  label: string;       // "DT 157" or "SD 136"
+  totalHours: number;  // rounded to 2 decimals
+}
+
+/**
+ * Complete result of building the daily truck summary
+ */
+export interface TruckSummaryResult {
+  summaryRows: TruckSummaryRow[];
+  dateLabel: string;            // "1/6/26"
+  headerLine: string;           // "1/6/26 HOURS:"
+  textLines: string[];          // ["DT 157: 4.00", "SD 136: 8.75"]
+  fullText: string;             // Complete copy-paste text block
+}

@@ -3,7 +3,7 @@
  * Main application component
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   FileUploadZone,
   SummaryBar,
@@ -11,13 +11,15 @@ import {
   Tab,
   BillingTable,
   ExceptionsTable,
+  TruckSummaryPanel,
 } from "./components";
 import { processFile } from "./services/validator";
 import { downloadBillingCSV, downloadExcel } from "./services/exporter";
+import { buildDailyTruckSummary } from "./services/truckSummary";
 import { BillingRow, ExceptionRow, ProcessingSummary } from "./types/billing";
 import "./App.css";
 
-type TabId = "billing" | "exceptions";
+type TabId = "billing" | "exceptions" | "summary";
 
 interface AppState {
   fileNames: string[];
@@ -92,9 +94,15 @@ function App(): React.ReactElement {
     }
   }, [state.validRows]);
 
+  // Compute truck summary from valid rows
+  const truckSummary = useMemo(
+    () => buildDailyTruckSummary(state.validRows),
+    [state.validRows]
+  );
+
   const handleDownloadExcel = useCallback(() => {
-    downloadExcel(state.validRows, state.exceptionRows);
-  }, [state.validRows, state.exceptionRows]);
+    downloadExcel(state.validRows, state.exceptionRows, truckSummary);
+  }, [state.validRows, state.exceptionRows, truckSummary]);
 
   const hasData = state.validRows.length > 0 || state.exceptionRows.length > 0;
 
@@ -115,6 +123,7 @@ function App(): React.ReactElement {
   const tabs: Tab[] = [
     { id: "billing", label: "Billing View", count: state.validRows.length },
     { id: "exceptions", label: "Exceptions", count: state.exceptionRows.length },
+    { id: "summary", label: "Daily Truck Summary", count: truckSummary.summaryRows.length },
   ];
 
   return (
@@ -200,6 +209,9 @@ function App(): React.ReactElement {
                 {activeTab === "exceptions" && (
                   <ExceptionsTable rows={state.exceptionRows} />
                 )}
+                {activeTab === "summary" && (
+                  <TruckSummaryPanel summary={truckSummary} />
+                )}
               </div>
             </section>
           </>
@@ -207,7 +219,7 @@ function App(): React.ReactElement {
       </main>
 
       <footer className="app-footer">
-        <p>Billing Builder v1.0</p>
+        <p>Billing Builder v1.2</p>
       </footer>
     </div>
   );

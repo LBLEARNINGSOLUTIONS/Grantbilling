@@ -601,6 +601,81 @@ button {
 }
 
 /* =============================================================================
+   Daily Truck Summary
+   ============================================================================= */
+
+.truck-summary-panel {
+  padding: 24px;
+}
+
+.summary-text-block {
+  background-color: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.summary-text {
+  font-family: "SF Mono", "Consolas", "Monaco", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  white-space: pre-wrap;
+  color: var(--color-gray-900);
+}
+
+.copy-button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.copy-button:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.summary-table-container {
+  margin-top: 24px;
+}
+
+.summary-table-container h4 {
+  margin: 0 0 12px 0;
+  color: var(--color-gray-700);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summary-table {
+  border-collapse: collapse;
+  width: auto;
+  min-width: 200px;
+}
+
+.summary-table th,
+.summary-table td {
+  padding: 8px 16px;
+  text-align: left;
+  border: 1px solid var(--color-gray-200);
+}
+
+.summary-table th {
+  background-color: var(--color-gray-50);
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.summary-table td:last-child {
+  text-align: right;
+  font-family: "SF Mono", "Consolas", monospace;
+}
+
+/* =============================================================================
    Responsive
    ============================================================================= */
 

@@ -5,7 +5,7 @@
 
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { BillingRow, ExceptionRow, OUTPUT_HEADERS } from "../types/billing";
+import { BillingRow, ExceptionRow, OUTPUT_HEADERS, TruckSummaryResult } from "../types/billing";
 
 /**
  * Convert billing rows to CSV string
@@ -45,13 +45,15 @@ export function downloadBillingCSV(rows: BillingRow[]): void {
 }
 
 /**
- * Download Excel workbook with two sheets:
+ * Download Excel workbook with three sheets:
  * - Sheet 1: "Billing_View" (11 columns, valid rows only)
  * - Sheet 2: "Exceptions" (11 columns + "Issue(s)", exception rows only)
+ * - Sheet 3: "Daily_Truck_Summary" (email-ready text block + hours table)
  */
 export function downloadExcel(
   validRows: BillingRow[],
-  exceptionRows: ExceptionRow[]
+  exceptionRows: ExceptionRow[],
+  truckSummary: TruckSummaryResult
 ): void {
   // Create workbook
   const workbook = XLSX.utils.book_new();
@@ -104,6 +106,35 @@ export function downloadExcel(
   }));
 
   XLSX.utils.book_append_sheet(workbook, exceptionsSheet, "Exceptions");
+
+  // -------------------------------------------------------------------------
+  // Sheet 3: Daily_Truck_Summary (email-ready text + table)
+  // -------------------------------------------------------------------------
+  const summaryData: (string | number)[][] = [];
+
+  // Email-ready text block at top
+  if (truckSummary.headerLine) {
+    summaryData.push([truckSummary.headerLine]);
+    for (const line of truckSummary.textLines) {
+      summaryData.push([line]);
+    }
+
+    // Empty rows for spacing
+    summaryData.push([]);
+    summaryData.push([]);
+  }
+
+  // Table header
+  summaryData.push(["Truck", "Hours"]);
+
+  // Table data
+  for (const row of truckSummary.summaryRows) {
+    summaryData.push([row.label, row.totalHours]);
+  }
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+  summarySheet["!cols"] = [{ wch: 15 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(workbook, summarySheet, "Daily_Truck_Summary");
 
   // -------------------------------------------------------------------------
   // Write and download
