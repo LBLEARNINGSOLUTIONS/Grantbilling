@@ -28,8 +28,10 @@ export function parseCSVFile(file: File): Promise<ParseResult> {
     Papa.parse<RawCSVRow>(file, {
       header: true,
       skipEmptyLines: true,
-      // Trim whitespace from header names
-      transformHeader: (header: string) => header.trim(),
+      // Trim whitespace and normalize unicode dash variants to ASCII hyphen
+      // so exports with en-dash / em-dash / non-breaking hyphen still match.
+      transformHeader: (header: string) =>
+        header.trim().replace(/[‐‑‒–—−]/g, "-"),
       complete: (results) => {
         const headers = results.meta.fields || [];
 

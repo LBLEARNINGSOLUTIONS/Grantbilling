@@ -31,7 +31,7 @@ Then open http://localhost:5173 in your browser.
 | Truck # | Which truck do you have? |
 | North/South job | Region |
 | Pit/Pick up name | Which Pit? |
-| Job/Delivery name | Job Name (as on ticket / E-Hauler label) |
+| Job/Delivery name | Customer / Delivery Name |
 | Product type | Material Type |
 | Ticket # or Multi | Ticket Number (blank → "MULTI") |
 | Truck type | Truck Type |

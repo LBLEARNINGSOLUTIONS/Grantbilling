@@ -15,7 +15,7 @@ export interface RawCSVRow {
   "Which truck do you have?": string;
   "Region": string;
   "Which Pit?": string;
-  "Job Name (as on ticket / E‑Hauler label)": string;
+  "Customer / Delivery Name": string;
   "Material Type": string;
   "Ticket Number": string;
   "Truck Type": string;
@@ -35,7 +35,7 @@ export const REQUIRED_INPUT_HEADERS: readonly string[] = [
   "Which truck do you have?",
   "Region",
   "Which Pit?",
-  "Job Name (as on ticket / E‑Hauler label)",
+  "Customer / Delivery Name",
   "Material Type",
   "Ticket Number",
   "Truck Type",
@@ -108,7 +108,7 @@ export const COLUMN_MAPPING: Record<keyof BillingRow, string> = {
   "Truck #": "Which truck do you have?",
   "North/South job": "Region",
   "Pit/Pick up name": "Which Pit?",
-  "Job/Delivery name": "Job Name (as on ticket / E‑Hauler label)",
+  "Job/Delivery name": "Customer / Delivery Name",
   "Product type": "Material Type",
   "Ticket # or Multi": "Ticket Number",
   "Truck type": "Truck Type",
