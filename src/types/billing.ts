@@ -12,13 +12,15 @@
  * These are the EXACT column headers expected in the uploaded CSV (case-sensitive)
  */
 export interface RawCSVRow {
-  "Which truck do you have?": string;
+  "Submitted By": string;
+  "Submission Date & Time": string;
   "Region": string;
   "Which Pit?": string;
+  "Truck Number": string;
+  "What type of truck?": string;
   "Customer / Delivery Name": string;
   "Material Type": string;
   "Ticket Number": string;
-  "Truck Type": string;
   "Job Start Time": string;
   "Job End Time": string;
   "Total tons": string;
@@ -28,17 +30,20 @@ export interface RawCSVRow {
 }
 
 /**
- * All 11 required input headers for CSV structure validation
- * Must match exactly (case-sensitive, punctuation-sensitive)
+ * All required input headers for CSV structure validation.
+ * Must match exactly (case-sensitive, punctuation-sensitive) — header
+ * normalization in csvParser.ts already handles dash/whitespace variants.
  */
 export const REQUIRED_INPUT_HEADERS: readonly string[] = [
-  "Which truck do you have?",
+  "Submitted By",
+  "Submission Date & Time",
   "Region",
   "Which Pit?",
+  "Truck Number",
+  "What type of truck?",
   "Customer / Delivery Name",
   "Material Type",
   "Ticket Number",
-  "Truck Type",
   "Job Start Time",
   "Job End Time",
   "Total tons",
@@ -46,25 +51,44 @@ export const REQUIRED_INPUT_HEADERS: readonly string[] = [
 ] as const;
 
 // =============================================================================
+// TRUCK NUMBER CONSTANTS
+// =============================================================================
+
+/**
+ * Hard-coded truck-number list. Mirrors the multiple-choice options on the
+ * Samsara form. Used for the Billing View filter dropdown. Stored as STRINGS
+ * to avoid leading-zero / sort-order surprises.
+ *
+ * Sorted descending (newest trucks first) per Maggie's preference.
+ */
+export const TRUCK_NUMBERS: readonly string[] = [
+  "137", "136", "24", "23", "22", "21", "20",
+  "19", "17", "16", "15", "13", "12", "11",
+] as const;
+
+// =============================================================================
 // OUTPUT BILLING TYPES
 // =============================================================================
 
 /**
- * Valid truck type values - EXACTLY these strings only
+ * Canonical truck-type values. Comparison is case-insensitive and treats
+ * "&" and "and" as equivalent — see normalizeTruckType() in validator.ts.
  */
-export type TruckType = "Truck" | "Truck & Pup" | "Side Dump";
+export type TruckType = "Truck" | "Truck and Pup" | "Side Dump";
 
 export const VALID_TRUCK_TYPES: readonly TruckType[] = [
   "Truck",
-  "Truck & Pup",
+  "Truck and Pup",
   "Side Dump",
 ] as const;
 
 /**
- * Transformed billing row with output column names
- * This is the format for display and export
+ * Per-submission billing row (1:1 with a CSV row, after transformation).
+ * This is the input to the grouping function — not the final display row.
  */
 export interface BillingRow {
+  "Submitted By": string;
+  "Submission Date & Time": string;  // raw value, used to anchor bare HH:MM times
   "Truck #": string;
   "North/South job": string;
   "Pit/Pick up name": string;
@@ -79,8 +103,9 @@ export interface BillingRow {
 }
 
 /**
- * Output column headers in EXACT order for export
- * This is the order Maggie needs for copy/paste to Parsons
+ * Output column headers in EXACT order for export.
+ * This is the order Maggie needs for copy/paste to Parsons.
+ * Total Time is intentionally not exported — dashboard-only.
  */
 export const OUTPUT_HEADERS: readonly (keyof BillingRow)[] = [
   "Truck #",
@@ -97,21 +122,59 @@ export const OUTPUT_HEADERS: readonly (keyof BillingRow)[] = [
 ] as const;
 
 // =============================================================================
+// GROUPED BILLING TYPES
+// =============================================================================
+
+/**
+ * One billing line item — represents one or more submissions collapsed by
+ * (driver + truck# + pit + customer + material). Every field that's part of
+ * the group key has a single value; tons/loads are summed; ticket is "MULTI"
+ * when distinct ticket numbers don't agree; total time is the SUM of each
+ * submission's (end - start), not (latest end - earliest start).
+ */
+export interface GroupedBillingRow {
+  // Identifying fields (constant within the group)
+  "Submitted By": string;
+  "Truck #": string;
+  "North/South job": string;
+  "Pit/Pick up name": string;
+  "Job/Delivery name": string;
+  "Product type": string;
+  "Truck type": string;
+
+  // Aggregated fields
+  "Ticket # or Multi": string;       // "MULTI" if distinct tickets, else the shared ticket
+  "Start time": string;              // earliest submission's start
+  "End time": string;                // latest submission's end
+  "Total tons": string;              // sum
+  "Total # of loads": string;        // sum
+
+  // Computed time (dashboard-only — not in OUTPUT_HEADERS)
+  totalMinutes: number;              // sum of (end - start) across submissions
+  totalTimeHHMM: string;             // "5:45"
+  totalTimeDecimal: string;          // "5.75"
+
+  submissionCount: number;           // for diagnostics / display
+}
+
+// =============================================================================
 // COLUMN MAPPING
 // =============================================================================
 
 /**
- * Explicit mapping from OUTPUT columns to INPUT columns
- * Key = Output column name, Value = Input column name
+ * Mapping from BillingRow keys to RawCSVRow column names.
+ * This is the single place column names are wired between input and output.
  */
 export const COLUMN_MAPPING: Record<keyof BillingRow, string> = {
-  "Truck #": "Which truck do you have?",
+  "Submitted By": "Submitted By",
+  "Submission Date & Time": "Submission Date & Time",
+  "Truck #": "Truck Number",
   "North/South job": "Region",
   "Pit/Pick up name": "Which Pit?",
   "Job/Delivery name": "Customer / Delivery Name",
   "Product type": "Material Type",
   "Ticket # or Multi": "Ticket Number",
-  "Truck type": "Truck Type",
+  "Truck type": "What type of truck?",
   "Start time": "Job Start Time",
   "End time": "Job End Time",
   "Total tons": "Total tons",

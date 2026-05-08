@@ -16,6 +16,7 @@ import {
 import { processFile } from "./services/validator";
 import { downloadBillingCSV, downloadExcel } from "./services/exporter";
 import { buildDailyTruckSummary } from "./services/truckSummary";
+import { buildGroupedBilling, groupedToBillingRow } from "./services/groupedBilling";
 import { BillingRow, ExceptionRow, ProcessingSummary } from "./types/billing";
 import "./App.css";
 
@@ -88,32 +89,42 @@ function App(): React.ReactElement {
     setActiveTab("billing");
   }, []);
 
-  const handleDownloadCSV = useCallback(() => {
-    if (state.validRows.length > 0) {
-      downloadBillingCSV(state.validRows);
-    }
-  }, [state.validRows]);
+  // Group submissions into billing line items by
+  // (driver + truck# + pit + customer + material). Each group's time is the
+  // SUM of (end - start) across submissions, displayed in the dashboard only.
+  const groupedRows = useMemo(
+    () => buildGroupedBilling(state.validRows),
+    [state.validRows]
+  );
 
-  // Compute truck summary from valid rows
   const truckSummary = useMemo(
     () => buildDailyTruckSummary(state.validRows),
     [state.validRows]
   );
 
+  const handleDownloadCSV = useCallback(() => {
+    if (groupedRows.length > 0) {
+      downloadBillingCSV(groupedRows.map(groupedToBillingRow));
+    }
+  }, [groupedRows]);
+
   const handleDownloadExcel = useCallback(() => {
-    downloadExcel(state.validRows, state.exceptionRows, truckSummary);
-  }, [state.validRows, state.exceptionRows, truckSummary]);
+    downloadExcel(
+      groupedRows.map(groupedToBillingRow),
+      state.exceptionRows,
+      truckSummary
+    );
+  }, [groupedRows, state.exceptionRows, truckSummary]);
 
   const hasData = state.validRows.length > 0 || state.exceptionRows.length > 0;
 
-  // Compute summary from current state
+  // Summary counts the displayed (grouped) line items, not raw submissions.
   const summary: ProcessingSummary = {
-    totalRows: state.validRows.length + state.exceptionRows.length,
-    validCount: state.validRows.length,
+    totalRows: groupedRows.length + state.exceptionRows.length,
+    validCount: groupedRows.length,
     exceptionCount: state.exceptionRows.length,
   };
 
-  // Display file names
   const fileDisplayName = state.fileNames.length === 0
     ? ""
     : state.fileNames.length === 1
@@ -121,7 +132,7 @@ function App(): React.ReactElement {
     : `${state.fileNames.length} files combined`;
 
   const tabs: Tab[] = [
-    { id: "billing", label: "Billing View", count: state.validRows.length },
+    { id: "billing", label: "Billing View", count: groupedRows.length },
     { id: "exceptions", label: "Exceptions", count: state.exceptionRows.length },
     { id: "summary", label: "Daily Truck Summary", count: truckSummary.summaryRows.length },
   ];
@@ -138,7 +149,6 @@ function App(): React.ReactElement {
       </header>
 
       <main className="app-main">
-        {/* Structure error */}
         {state.structureError && (
           <div className="error-banner">
             <strong>Error:</strong> {state.structureError}
@@ -148,7 +158,6 @@ function App(): React.ReactElement {
           </div>
         )}
 
-        {/* Upload section - always visible */}
         <section className={`upload-section ${hasData ? "compact" : ""}`}>
           <FileUploadZone
             onFileSelect={handleFileSelect}
@@ -156,10 +165,8 @@ function App(): React.ReactElement {
           />
         </section>
 
-        {/* Results section */}
         {hasData && (
           <>
-            {/* Summary bar */}
             <section className="summary-section">
               <SummaryBar
                 summary={summary}
@@ -167,13 +174,12 @@ function App(): React.ReactElement {
               />
             </section>
 
-            {/* Export buttons */}
             <section className="export-section">
               <div className="export-buttons">
                 <button
                   className="export-button csv"
                   onClick={handleDownloadCSV}
-                  disabled={state.validRows.length === 0}
+                  disabled={groupedRows.length === 0}
                 >
                   Download Billing View CSV
                 </button>
@@ -181,7 +187,7 @@ function App(): React.ReactElement {
                   className="export-button excel"
                   onClick={handleDownloadExcel}
                   disabled={
-                    state.validRows.length === 0 &&
+                    groupedRows.length === 0 &&
                     state.exceptionRows.length === 0
                   }
                 >
@@ -190,7 +196,6 @@ function App(): React.ReactElement {
               </div>
             </section>
 
-            {/* Tabs and data tables */}
             <section className="data-section">
               <Tabs
                 tabs={tabs}
@@ -204,7 +209,7 @@ function App(): React.ReactElement {
                 id={`panel-${activeTab}`}
               >
                 {activeTab === "billing" && (
-                  <BillingTable rows={state.validRows} />
+                  <BillingTable rows={groupedRows} />
                 )}
                 {activeTab === "exceptions" && (
                   <ExceptionsTable rows={state.exceptionRows} />
@@ -219,7 +224,7 @@ function App(): React.ReactElement {
       </main>
 
       <footer className="app-footer">
-        <p>Billing Builder v1.2</p>
+        <p>Billing Builder v1.3</p>
       </footer>
     </div>
   );
