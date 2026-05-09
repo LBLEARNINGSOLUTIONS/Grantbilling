@@ -16,6 +16,7 @@ export function transformRow(raw: RawCSVRow): BillingRow {
   return {
     "Submitted By": (raw[COLUMN_MAPPING["Submitted By"]] ?? "").trim(),
     "Submission Date & Time": (raw[COLUMN_MAPPING["Submission Date & Time"]] ?? "").trim(),
+    "Who are you running for?": (raw[COLUMN_MAPPING["Who are you running for?"]] ?? "").trim(),
     "Truck #": (raw[COLUMN_MAPPING["Truck #"]] ?? "").trim(),
     "North/South job": (raw[COLUMN_MAPPING["North/South job"]] ?? "").trim(),
     "Pit/Pick up name": (raw[COLUMN_MAPPING["Pit/Pick up name"]] ?? "").trim(),

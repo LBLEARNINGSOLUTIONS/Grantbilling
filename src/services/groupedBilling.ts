@@ -10,8 +10,34 @@
  *     gaps between submissions are excluded so a lunch break doesn't bill)
  */
 
+import dayjs from "dayjs";
 import { BillingRow, GroupedBillingRow } from "../types/billing";
 import { parseTime, minutesBetween, formatHHMM } from "./timeParser";
+
+/**
+ * Extract a YYYY-MM-DD ISO date from a Submission Date & Time string. Falls
+ * back to today's date if unparseable so date filtering doesn't drop rows
+ * silently — the row will just be tagged with today and remain visible.
+ */
+function extractIsoDate(submissionDateStr: string): string {
+  const trimmed = submissionDateStr.trim();
+  if (trimmed) {
+    const formats = [
+      "MM/DD/YYYY HH:mm:ss",
+      "M/D/YYYY HH:mm:ss",
+      "MM/DD/YYYY H:mm",
+      "YYYY-MM-DDTHH:mm:ss",
+      "YYYY-MM-DD HH:mm:ss",
+    ];
+    for (const format of formats) {
+      const parsed = dayjs(trimmed, format, true);
+      if (parsed.isValid()) return parsed.format("YYYY-MM-DD");
+    }
+    const native = new Date(trimmed);
+    if (!isNaN(native.getTime())) return dayjs(native).format("YYYY-MM-DD");
+  }
+  return dayjs().format("YYYY-MM-DD");
+}
 
 function groupKey(row: BillingRow): string {
   return [
@@ -92,6 +118,8 @@ function collapseGroup(submissions: BillingRow[]): GroupedBillingRow {
     "End time": latest ? latest.row["End time"] : first["End time"],
     "Total tons": formatNumber(totalTons),
     "Total # of loads": formatNumber(totalLoads),
+    customer: first["Who are you running for?"],
+    date: extractIsoDate(first["Submission Date & Time"]),
     totalMinutes,
     totalTimeHHMM: formatHHMM(totalMinutes),
     totalTimeDecimal: (totalMinutes / 60).toFixed(2),
@@ -117,6 +145,7 @@ export function groupedToBillingRow(g: GroupedBillingRow): BillingRow {
   return {
     "Submitted By": g["Submitted By"],
     "Submission Date & Time": "",  // not meaningful at the group level
+    "Who are you running for?": g.customer,
     "Truck #": g["Truck #"],
     "North/South job": g["North/South job"],
     "Pit/Pick up name": g["Pit/Pick up name"],

@@ -1,54 +1,165 @@
 /**
- * BillingTable Component
+ * BillingTable Component (V2 — driver-grouped)
  *
- * Displays grouped billing line items (one row per
- * driver+truck+pit+customer+material). Includes a truck-number filter
- * dropdown and pagination. Total Time is shown in two formats so Maggie
- * can read whichever one Parsons wants on a given invoice.
+ * Renders aggregated billing line items grouped into driver sections, with a
+ * filter bar above (Driver, Truck #, Customer, Date Range). Filters compose
+ * with AND between filter types and OR within a filter type. Driver totals
+ * recalculate against the FILTERED rows. Lines within each driver section
+ * are sorted by start time ascending and numbered Line 1, Line 2, ... per
+ * Maggie's mental model ("Tim 1, 2, 3 — then Clint 1, 2, 3").
  */
 
-import React, { useState, useMemo } from "react";
-import { GroupedBillingRow, TRUCK_NUMBERS } from "../types/billing";
-
-const ROWS_PER_PAGE = 50;
-const ALL_TRUCKS = "__ALL__";
+import React, { useMemo, useState } from "react";
+import {
+  GroupedBillingRow,
+  TRUCK_NUMBERS,
+  RUNNING_FOR_OPTIONS,
+} from "../types/billing";
+import { parseTime, formatHHMM } from "../services/timeParser";
 
 interface BillingTableProps {
   rows: GroupedBillingRow[];
 }
 
-export function BillingTable({ rows }: BillingTableProps): React.ReactElement {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [truckFilter, setTruckFilter] = useState<string>(ALL_TRUCKS);
+interface DriverGroup {
+  driver: string;
+  lines: GroupedBillingRow[];
+  totals: { minutes: number; loads: number; tons: number };
+}
 
+// Numeric value used to sort lines within a driver section. Falls back to the
+// raw string if parseTime fails so we still get a stable order.
+function startTimeSortKey(row: GroupedBillingRow): number {
+  const parsed = parseTime(row["Start time"], `${row.date} 00:00:00`);
+  return parsed ? parsed.valueOf() : 0;
+}
+
+function parseFloatSafe(value: string): number {
+  const n = parseFloat(value.replace(/,/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values.filter((v) => v))).sort((a, b) =>
+    a.localeCompare(b)
+  );
+}
+
+/**
+ * Order customers with the canonical RUNNING_FOR_OPTIONS first (in spec
+ * order), then any unknown values alphabetically. Keeps the filter pills
+ * predictable while still tolerating new carrier values without code changes.
+ */
+function orderCustomers(values: string[]): string[] {
+  const present = new Set(values.filter((v) => v));
+  const known = RUNNING_FOR_OPTIONS.filter((v) => present.has(v));
+  const unknown = [...present]
+    .filter((v) => !RUNNING_FOR_OPTIONS.includes(v))
+    .sort((a, b) => a.localeCompare(b));
+  return [...known, ...unknown];
+}
+
+export function BillingTable({ rows }: BillingTableProps): React.ReactElement {
+  // Available filter values are derived from the data. Drivers are everyone
+  // who actually submitted; trucks come from the hard-coded list (so the
+  // options stay stable when no submissions exist for a given truck);
+  // customers and dates come from the data.
+  const allDrivers = useMemo(
+    () => uniqueSorted(rows.map((r) => r["Submitted By"])),
+    [rows]
+  );
+  const allCustomers = useMemo(
+    () => orderCustomers(rows.map((r) => r.customer)),
+    [rows]
+  );
+  const allDates = useMemo(() => uniqueSorted(rows.map((r) => r.date)), [rows]);
+  const minDate = allDates[0] ?? "";
+  const maxDate = allDates[allDates.length - 1] ?? "";
+
+  // Initial filter state: everything selected, full date range — so the
+  // dashboard looks identical on first render to "no filtering applied."
+  const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(
+    () => new Set(allDrivers)
+  );
+  const [selectedTrucks, setSelectedTrucks] = useState<Set<string>>(
+    () => new Set(TRUCK_NUMBERS)
+  );
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(
+    () => new Set(allCustomers)
+  );
+  const [dateFrom, setDateFrom] = useState<string>(minDate);
+  const [dateTo, setDateTo] = useState<string>(maxDate);
+
+  // When the underlying data changes (new CSV uploaded), re-seed the
+  // filters so newly-present drivers/customers/dates are selected.
+  React.useEffect(() => {
+    setSelectedDrivers(new Set(allDrivers));
+  }, [allDrivers]);
+  React.useEffect(() => {
+    setSelectedCustomers(new Set(allCustomers));
+  }, [allCustomers]);
+  React.useEffect(() => {
+    setDateFrom(minDate);
+    setDateTo(maxDate);
+  }, [minDate, maxDate]);
+
+  const toggle = <T,>(set: Set<T>, value: T): Set<T> => {
+    const next = new Set(set);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    return next;
+  };
+
+  const resetFilters = () => {
+    setSelectedDrivers(new Set(allDrivers));
+    setSelectedTrucks(new Set(TRUCK_NUMBERS));
+    setSelectedCustomers(new Set(allCustomers));
+    setDateFrom(minDate);
+    setDateTo(maxDate);
+  };
+
+  // Apply all four filters with AND between types, OR within a type (a row
+  // passes if its driver is in selectedDrivers AND its truck is in
+  // selectedTrucks AND ...).
   const filteredRows = useMemo(
     () =>
-      truckFilter === ALL_TRUCKS
-        ? rows
-        : rows.filter((r) => r["Truck #"] === truckFilter),
-    [rows, truckFilter]
+      rows.filter(
+        (r) =>
+          selectedDrivers.has(r["Submitted By"]) &&
+          selectedTrucks.has(r["Truck #"]) &&
+          selectedCustomers.has(r.customer) &&
+          (!dateFrom || r.date >= dateFrom) &&
+          (!dateTo || r.date <= dateTo)
+      ),
+    [rows, selectedDrivers, selectedTrucks, selectedCustomers, dateFrom, dateTo]
   );
 
-  const totalPages = Math.ceil(filteredRows.length / ROWS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-  const endIndex = Math.min(startIndex + ROWS_PER_PAGE, filteredRows.length);
-
-  const currentRows = useMemo(
-    () => filteredRows.slice(startIndex, endIndex),
-    [filteredRows, startIndex, endIndex]
-  );
-
-  // If pagination context outgrows the new filtered view, snap back to page 1.
-  React.useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
+  // Group filtered rows by driver, sort lines within each driver by start
+  // time ascending, sort drivers alphabetically. Drivers with zero matching
+  // lines are omitted entirely.
+  const driverGroups = useMemo<DriverGroup[]>(() => {
+    const map = new Map<string, GroupedBillingRow[]>();
+    for (const r of filteredRows) {
+      if (!map.has(r["Submitted By"])) map.set(r["Submitted By"], []);
+      map.get(r["Submitted By"])!.push(r);
     }
-  }, [filteredRows.length, totalPages, currentPage]);
 
-  // Reset to page 1 when filter changes so the user always sees the top.
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [truckFilter]);
+    const groups: DriverGroup[] = [];
+    for (const [driver, lines] of map.entries()) {
+      lines.sort((a, b) => startTimeSortKey(a) - startTimeSortKey(b));
+      const totals = lines.reduce(
+        (acc, l) => ({
+          minutes: acc.minutes + l.totalMinutes,
+          loads: acc.loads + parseFloatSafe(l["Total # of loads"]),
+          tons: acc.tons + parseFloatSafe(l["Total tons"]),
+        }),
+        { minutes: 0, loads: 0, tons: 0 }
+      );
+      groups.push({ driver, lines, totals });
+    }
+    groups.sort((a, b) => a.driver.localeCompare(b.driver));
+    return groups;
+  }, [filteredRows]);
 
   if (rows.length === 0) {
     return (
@@ -63,80 +174,183 @@ export function BillingTable({ rows }: BillingTableProps): React.ReactElement {
 
   return (
     <div className="table-wrapper">
-      <div className="table-toolbar">
-        <label className="filter-label">
-          Truck #:
-          <select
-            className="filter-select"
-            value={truckFilter}
-            onChange={(e) => setTruckFilter(e.target.value)}
-          >
-            <option value={ALL_TRUCKS}>All trucks</option>
-            {TRUCK_NUMBERS.map((num) => (
-              <option key={num} value={num}>
-                {num}
-              </option>
-            ))}
-          </select>
-        </label>
-        {truckFilter !== ALL_TRUCKS && (
-          <span className="filter-summary">
-            Showing {filteredRows.length} of {rows.length} line items
-          </span>
-        )}
+      <FilterBar
+        allDrivers={allDrivers}
+        allCustomers={allCustomers}
+        selectedDrivers={selectedDrivers}
+        selectedTrucks={selectedTrucks}
+        selectedCustomers={selectedCustomers}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        minDate={minDate}
+        maxDate={maxDate}
+        onToggleDriver={(d) => setSelectedDrivers((s) => toggle(s, d))}
+        onToggleTruck={(t) => setSelectedTrucks((s) => toggle(s, t))}
+        onToggleCustomer={(c) => setSelectedCustomers((s) => toggle(s, c))}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        onReset={resetFilters}
+      />
+
+      <div className="overall-summary">
+        Showing <strong>{filteredRows.length}</strong> line items across{" "}
+        <strong>{driverGroups.length}</strong>{" "}
+        {driverGroups.length === 1 ? "driver" : "drivers"}
       </div>
 
-      {totalPages > 1 && (
-        <div className="pagination-controls">
-          <span className="pagination-info">
-            {filteredRows.length === 0
-              ? "0 rows"
-              : `Showing ${startIndex + 1}-${endIndex} of ${filteredRows.length} rows`}
-          </span>
-          <div className="pagination-buttons">
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-            >
-              First
-            </button>
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Prev
-            </button>
-            <span className="pagination-current">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-            >
-              Last
-            </button>
-          </div>
+      {driverGroups.length === 0 ? (
+        <div className="empty-table-message">
+          <p>No line items match the current filters.</p>
+          <p className="empty-hint">Try widening the filters or click Reset.</p>
         </div>
+      ) : (
+        driverGroups.map((g) => <DriverSection key={g.driver} group={g} />)
       )}
+    </div>
+  );
+}
 
+// =============================================================================
+// FilterBar
+// =============================================================================
+
+interface FilterBarProps {
+  allDrivers: string[];
+  allCustomers: string[];
+  selectedDrivers: Set<string>;
+  selectedTrucks: Set<string>;
+  selectedCustomers: Set<string>;
+  dateFrom: string;
+  dateTo: string;
+  minDate: string;
+  maxDate: string;
+  onToggleDriver: (d: string) => void;
+  onToggleTruck: (t: string) => void;
+  onToggleCustomer: (c: string) => void;
+  onDateFromChange: (d: string) => void;
+  onDateToChange: (d: string) => void;
+  onReset: () => void;
+}
+
+function FilterBar(props: FilterBarProps): React.ReactElement {
+  return (
+    <div className="filter-bar">
+      <FilterPills
+        label="Driver"
+        options={props.allDrivers}
+        selected={props.selectedDrivers}
+        onToggle={props.onToggleDriver}
+      />
+      <FilterPills
+        label="Truck #"
+        options={[...TRUCK_NUMBERS]}
+        selected={props.selectedTrucks}
+        onToggle={props.onToggleTruck}
+      />
+      <FilterPills
+        label="Customer"
+        options={props.allCustomers}
+        selected={props.selectedCustomers}
+        onToggle={props.onToggleCustomer}
+      />
+      <div className="filter-section">
+        <span className="filter-section-label">Date</span>
+        <div className="date-range">
+          <input
+            type="date"
+            value={props.dateFrom}
+            min={props.minDate}
+            max={props.maxDate}
+            onChange={(e) => props.onDateFromChange(e.target.value)}
+            aria-label="Date from"
+          />
+          <span className="date-range-sep">–</span>
+          <input
+            type="date"
+            value={props.dateTo}
+            min={props.minDate}
+            max={props.maxDate}
+            onChange={(e) => props.onDateToChange(e.target.value)}
+            aria-label="Date to"
+          />
+        </div>
+      </div>
+      <button className="reset-filters-btn" onClick={props.onReset}>
+        Reset filters
+      </button>
+    </div>
+  );
+}
+
+interface FilterPillsProps {
+  label: string;
+  options: string[];
+  selected: Set<string>;
+  onToggle: (value: string) => void;
+}
+
+function FilterPills({
+  label,
+  options,
+  selected,
+  onToggle,
+}: FilterPillsProps): React.ReactElement {
+  if (options.length === 0) {
+    return (
+      <div className="filter-section">
+        <span className="filter-section-label">{label}</span>
+        <span className="filter-empty">— none —</span>
+      </div>
+    );
+  }
+  return (
+    <div className="filter-section">
+      <span className="filter-section-label">{label}</span>
+      <div className="filter-pills">
+        {options.map((opt) => {
+          const isOn = selected.has(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              className={`filter-pill ${isOn ? "on" : "off"}`}
+              onClick={() => onToggle(opt)}
+              aria-pressed={isOn}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// DriverSection
+// =============================================================================
+
+interface DriverSectionProps {
+  group: DriverGroup;
+}
+
+function DriverSection({ group }: DriverSectionProps): React.ReactElement {
+  const { driver, lines, totals } = group;
+  return (
+    <section className="driver-section">
+      <header className="driver-header">
+        <span className="driver-name">{driver}</span>
+        <span className="driver-line-count">
+          {lines.length} {lines.length === 1 ? "line" : "lines"}
+        </span>
+      </header>
       <div className="table-container">
         <table className="billing-table">
           <thead>
             <tr>
               <th className="row-num-header">#</th>
-              <th>Driver</th>
               <th>Truck #</th>
-              <th>North/South job</th>
+              <th>Customer</th>
               <th>Pit/Pick up name</th>
               <th>Job/Delivery name</th>
               <th>Product type</th>
@@ -152,12 +366,11 @@ export function BillingTable({ rows }: BillingTableProps): React.ReactElement {
             </tr>
           </thead>
           <tbody>
-            {currentRows.map((row, index) => (
-              <tr key={startIndex + index}>
-                <td className="row-num">{startIndex + index + 1}</td>
-                <td>{row["Submitted By"]}</td>
+            {lines.map((row, i) => (
+              <tr key={i}>
+                <td className="row-num">Line {i + 1}</td>
                 <td>{row["Truck #"]}</td>
-                <td>{row["North/South job"]}</td>
+                <td>{row.customer}</td>
                 <td>{row["Pit/Pick up name"]}</td>
                 <td>{row["Job/Delivery name"]}</td>
                 <td>{row["Product type"]}</td>
@@ -175,6 +388,16 @@ export function BillingTable({ rows }: BillingTableProps): React.ReactElement {
           </tbody>
         </table>
       </div>
-    </div>
+      <div className="driver-total">
+        <strong>Driver Total:</strong> {formatHHMM(totals.minutes)} ({(
+          totals.minutes / 60
+        ).toFixed(2)} hrs) | {formatLoads(totals.loads)} loads |{" "}
+        {totals.tons.toFixed(2)} tons
+      </div>
+    </section>
   );
+}
+
+function formatLoads(n: number): string {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(2);
 }

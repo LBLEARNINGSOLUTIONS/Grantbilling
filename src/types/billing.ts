@@ -14,6 +14,7 @@
 export interface RawCSVRow {
   "Submitted By": string;
   "Submission Date & Time": string;
+  "Who are you running for?": string;
   "Region": string;
   "Which Pit?": string;
   "Truck Number": string;
@@ -37,6 +38,7 @@ export interface RawCSVRow {
 export const REQUIRED_INPUT_HEADERS: readonly string[] = [
   "Submitted By",
   "Submission Date & Time",
+  "Who are you running for?",
   "Region",
   "Which Pit?",
   "Truck Number",
@@ -66,6 +68,19 @@ export const TRUCK_NUMBERS: readonly string[] = [
   "19", "17", "16", "15", "13", "12", "11",
 ] as const;
 
+/**
+ * Known carriers for the "Who are you running for?" filter. Drives the order
+ * of the customer pills in the filter bar; any value not in this list is
+ * still allowed and shown after these in alphabetical order (handled by the
+ * filter bar component).
+ */
+export const RUNNING_FOR_OPTIONS: readonly string[] = [
+  "Parson",
+  "Compass",
+  "E.K. Bailey",
+  "Other",
+] as const;
+
 // =============================================================================
 // OUTPUT BILLING TYPES
 // =============================================================================
@@ -89,6 +104,7 @@ export const VALID_TRUCK_TYPES: readonly TruckType[] = [
 export interface BillingRow {
   "Submitted By": string;
   "Submission Date & Time": string;  // raw value, used to anchor bare HH:MM times
+  "Who are you running for?": string;  // carrier (Parson / Compass / E.K. Bailey / Other)
   "Truck #": string;
   "North/South job": string;
   "Pit/Pick up name": string;
@@ -149,6 +165,10 @@ export interface GroupedBillingRow {
   "Total tons": string;              // sum
   "Total # of loads": string;        // sum
 
+  // Pass-through fields (V2: dashboard filter inputs)
+  customer: string;                  // "Who are you running for?" — taken from first submission
+  date: string;                      // ISO YYYY-MM-DD — date of first submission, for date filter
+
   // Computed time (dashboard-only — not in OUTPUT_HEADERS)
   totalMinutes: number;              // sum of (end - start) across submissions
   totalTimeHHMM: string;             // "5:45"
@@ -168,6 +188,7 @@ export interface GroupedBillingRow {
 export const COLUMN_MAPPING: Record<keyof BillingRow, string> = {
   "Submitted By": "Submitted By",
   "Submission Date & Time": "Submission Date & Time",
+  "Who are you running for?": "Who are you running for?",
   "Truck #": "Truck Number",
   "North/South job": "Region",
   "Pit/Pick up name": "Which Pit?",
