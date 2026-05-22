@@ -39,13 +39,24 @@ function extractIsoDate(submissionDateStr: string): string {
   return dayjs().format("YYYY-MM-DD");
 }
 
+/**
+ * Normalize a value used in the group key: lowercase, trim, and collapse runs
+ * of internal whitespace to a single space. This merges submissions that refer
+ * to the same driver/customer/etc. but were typed with different casing or
+ * spacing ("BODEC INC." vs "bodec inc." vs "BODEC  INC."). Applied to the KEY
+ * only — display values keep the first submission's original casing.
+ */
+export function normalizeKey(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
 function groupKey(row: BillingRow): string {
   return [
-    row["Submitted By"],
-    row["Truck #"],
-    row["Pit/Pick up name"],
-    row["Job/Delivery name"],
-    row["Product type"],
+    normalizeKey(row["Submitted By"]),
+    normalizeKey(row["Truck #"]),
+    normalizeKey(row["Pit/Pick up name"]),
+    normalizeKey(row["Job/Delivery name"]),
+    normalizeKey(row["Product type"]),
   ].join("␟"); // unit-separator char — won't collide with field content
 }
 
@@ -105,6 +116,11 @@ function collapseGroup(submissions: BillingRow[]): GroupedBillingRow {
   const ticketDisplay =
     tickets.size === 0 ? "MULTI" : tickets.size === 1 ? [...tickets][0] : "MULTI";
 
+  // Surface the first advisory note from any submission in the group so the
+  // dashboard can flag the line for manual verification.
+  const verifyNote =
+    submissions.map((s) => s["Issue(s)"]).find((n) => !!n) ?? "";
+
   return {
     "Submitted By": first["Submitted By"],
     "Truck #": first["Truck #"],
@@ -124,6 +140,7 @@ function collapseGroup(submissions: BillingRow[]): GroupedBillingRow {
     totalTimeHHMM: formatHHMM(totalMinutes),
     totalTimeDecimal: (totalMinutes / 60).toFixed(2),
     submissionCount: submissions.length,
+    verifyNote,
   };
 }
 

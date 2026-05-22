@@ -366,25 +366,37 @@ function DriverSection({ group }: DriverSectionProps): React.ReactElement {
             </tr>
           </thead>
           <tbody>
-            {lines.map((row, i) => (
-              <tr key={i}>
-                <td className="row-num">Line {i + 1}</td>
-                <td>{row["Truck #"]}</td>
-                <td>{row.customer}</td>
-                <td>{row["Pit/Pick up name"]}</td>
-                <td>{row["Job/Delivery name"]}</td>
-                <td>{row["Product type"]}</td>
-                <td>{row["Truck type"]}</td>
-                <td>{row["Ticket # or Multi"]}</td>
-                <td>{row["Start time"]}</td>
-                <td>{row["End time"]}</td>
-                <td>{row["Total tons"]}</td>
-                <td>{row["Total # of loads"]}</td>
-                <td>{row.totalTimeHHMM}</td>
-                <td>{row.totalTimeDecimal}</td>
-                <td>{row.submissionCount}</td>
-              </tr>
-            ))}
+            {lines.map((row, i) => {
+              const needsVerify = row.verifyNote !== "";
+              return (
+                <tr key={i} className={needsVerify ? "verify-row" : undefined}>
+                  <td className="row-num">
+                    Line {i + 1}
+                    {needsVerify && (
+                      <span className="verify-badge" title={row.verifyNote}>
+                        ⚠️ VERIFY
+                      </span>
+                    )}
+                  </td>
+                  <td>{row["Truck #"]}</td>
+                  <td>{row.customer}</td>
+                  <td>{row["Pit/Pick up name"]}</td>
+                  <td>{row["Job/Delivery name"]}</td>
+                  <td>{row["Product type"]}</td>
+                  <td>{row["Truck type"]}</td>
+                  <td>{row["Ticket # or Multi"]}</td>
+                  <td>{row["Start time"]}</td>
+                  <td>{row["End time"]}</td>
+                  <td>{row["Total tons"]}</td>
+                  <td className={needsVerify ? "verify-cell" : undefined}>
+                    {row["Total # of loads"]}
+                  </td>
+                  <td>{row.totalTimeHHMM}</td>
+                  <td>{row.totalTimeDecimal}</td>
+                  <td>{row.submissionCount}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

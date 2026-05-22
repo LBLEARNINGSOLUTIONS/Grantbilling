@@ -27,6 +27,69 @@ const NORMALIZED_VALID_TRUCK_TYPES = new Set(
 );
 
 // =============================================================================
+// SUBMISSION DEDUPLICATION (Change 2)
+// =============================================================================
+
+/**
+ * Drop rows that repeat a "Submission URL" already seen, keeping the first.
+ * Rows without a Submission URL can't be de-duped and are always kept.
+ * Dropped duplicates are logged to the console.
+ */
+export function dedupeBySubmissionUrl(rows: RawCSVRow[]): RawCSVRow[] {
+  const seen = new Set<string>();
+  const result: RawCSVRow[] = [];
+  let dropped = 0;
+
+  for (const row of rows) {
+    const url = (row["Submission URL"] ?? "").trim();
+    if (url === "") {
+      result.push(row); // no URL to dedupe on — keep it
+      continue;
+    }
+    if (seen.has(url)) {
+      dropped++;
+      console.warn(`Dropping duplicate submission (Submission URL: ${url})`);
+      continue;
+    }
+    seen.add(url);
+    result.push(row);
+  }
+
+  if (dropped > 0) {
+    console.warn(`Deduplication removed ${dropped} duplicate submission(s).`);
+  }
+  return result;
+}
+
+// =============================================================================
+// BLANK / ZERO LOADS AUTO-CORRECTION (Change 3)
+// =============================================================================
+
+const LOADS_AUTOSET_NOTE =
+  "Loads was blank/0, auto-set to 1 — verify with driver";
+
+/**
+ * If Number of Loads is blank/0 but Total tons > 0, set loads to "1" and
+ * return an advisory note. Mutates the row in place. Returns null when no
+ * correction applies (including the both-empty case, which stays an exception
+ * via the quantity rule). Total tons embedded text like "38.39 tons" parses
+ * as 38.39 — the same lenient parse used by validateQuantities.
+ */
+function autoCorrectLoads(row: BillingRow): string | null {
+  const loadsStr = row["Total # of loads"] ?? "";
+  const tonsStr = row["Total tons"] ?? "";
+  const loads = parseFloat(loadsStr.replace(/,/g, "")) || 0;
+  const tons = parseFloat(tonsStr.replace(/,/g, "")) || 0;
+
+  const loadsBlankOrZero = loadsStr.trim() === "" || loads === 0;
+  if (loadsBlankOrZero && tons > 0) {
+    row["Total # of loads"] = "1";
+    return LOADS_AUTOSET_NOTE;
+  }
+  return null;
+}
+
+// =============================================================================
 // VALIDATION RULE FUNCTIONS
 // =============================================================================
 
@@ -141,12 +204,16 @@ export function validateRow(row: BillingRow): string[] {
 
 function processRow(raw: RawCSVRow, rowIndex: number): RowResult {
   const billingRow = transformRow(raw);
+  // Auto-correct blank/0 loads when tons > 0 (mutates billingRow) before
+  // validation, so the quantity rule doesn't flag the now-corrected loads.
+  const autoNote = autoCorrectLoads(billingRow);
   const issues = validateRow(billingRow);
   return {
     rowIndex,
     billingRow,
     issues,
     isValid: issues.length === 0,
+    autoNote,
   };
 }
 
@@ -167,17 +234,31 @@ export async function processFile(file: File): Promise<ProcessingResult> {
     };
   }
 
+  // Deduplicate by Submission URL BEFORE validation so repeat submissions
+  // are never double-counted in totals.
+  const dedupedData = dedupeBySubmissionUrl(parseResult.data);
+
   const validRows: BillingRow[] = [];
   const exceptionRows: ExceptionRow[] = [];
 
-  for (let i = 0; i < parseResult.data.length; i++) {
-    const result = processRow(parseResult.data[i], i);
+  for (let i = 0; i < dedupedData.length; i++) {
+    const result = processRow(dedupedData[i], i);
     if (result.isValid) {
+      // Valid row — attach the advisory note (if any) without routing to
+      // exceptions, so an auto-corrected loads row stays billable.
+      if (result.autoNote) {
+        result.billingRow["Issue(s)"] = result.autoNote;
+      }
       validRows.push(result.billingRow);
     } else {
+      // Invalid row — keep the advisory note alongside the real issues so no
+      // information is lost in the Exceptions tab.
+      const allIssues = result.autoNote
+        ? [result.autoNote, ...result.issues]
+        : result.issues;
       exceptionRows.push({
         ...result.billingRow,
-        "Issue(s)": result.issues.join(", "),
+        "Issue(s)": allIssues.join(", "),
       });
     }
   }
@@ -188,7 +269,7 @@ export async function processFile(file: File): Promise<ProcessingResult> {
     validRows,
     exceptionRows,
     summary: {
-      totalRows: parseResult.data.length,
+      totalRows: dedupedData.length,
       validCount: validRows.length,
       exceptionCount: exceptionRows.length,
     },

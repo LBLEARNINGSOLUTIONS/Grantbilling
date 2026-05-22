@@ -706,6 +706,34 @@ button {
   color: var(--color-gray-900);
 }
 
+/* Auto-corrected rows (e.g. loads blank/0 → 1) flagged for manual check */
+.verify-row {
+  background-color: #fffbeb;
+}
+
+.verify-row:hover {
+  background-color: #fef3c7 !important;
+}
+
+.verify-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: #f59e0b;
+  color: #1f2937;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.verify-cell {
+  font-weight: 700;
+  color: #b45309;
+}
+
 .pagination-controls {
   display: flex;
   justify-content: space-between;

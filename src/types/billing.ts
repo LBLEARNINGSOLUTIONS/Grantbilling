@@ -116,6 +116,9 @@ export interface BillingRow {
   "End time": string;
   "Total tons": string;
   "Total # of loads": string;
+  // Optional advisory note carried by an otherwise-valid row (e.g. auto-set
+  // loads). Not a validation failure; not exported (absent from OUTPUT_HEADERS).
+  "Issue(s)"?: string;
 }
 
 /**
@@ -175,6 +178,10 @@ export interface GroupedBillingRow {
   totalTimeDecimal: string;          // "5.75"
 
   submissionCount: number;           // for diagnostics / display
+
+  // Non-empty when any submission in this group carried an advisory note
+  // (e.g. loads auto-set to 1). Drives the ⚠️ VERIFY badge in the Billing View.
+  verifyNote: string;
 }
 
 // =============================================================================
@@ -184,8 +191,9 @@ export interface GroupedBillingRow {
 /**
  * Mapping from BillingRow keys to RawCSVRow column names.
  * This is the single place column names are wired between input and output.
+ * "Issue(s)" is excluded — it's a derived advisory note, not a CSV column.
  */
-export const COLUMN_MAPPING: Record<keyof BillingRow, string> = {
+export const COLUMN_MAPPING: Record<Exclude<keyof BillingRow, "Issue(s)">, string> = {
   "Submitted By": "Submitted By",
   "Submission Date & Time": "Submission Date & Time",
   "Who are you running for?": "Who are you running for?",
@@ -221,6 +229,9 @@ export interface RowResult {
   billingRow: BillingRow;
   issues: string[];
   isValid: boolean;
+  // Advisory note for an auto-corrected but still-valid row (e.g. loads
+  // auto-set to 1). Null when no correction was applied.
+  autoNote: string | null;
 }
 
 /**
