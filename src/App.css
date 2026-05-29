@@ -74,7 +74,7 @@ body {
 .app-main {
   flex: 1;
   padding: 24px;
-  max-width: 1600px;
+  max-width: min(1800px, 98vw);
   margin: 0 auto;
   width: 100%;
 }
@@ -462,16 +462,44 @@ button {
 .exceptions-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
+  table-layout: auto;
 }
 
 .billing-table th,
 .billing-table td,
 .exceptions-table th,
 .exceptions-table td {
-  padding: 10px 12px;
+  padding: 6px 8px;
   text-align: left;
   border-bottom: 1px solid var(--color-gray-100);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+/* Numeric / time / id columns stay on a single line so they don't wrap
+   awkwardly (HH:MM splitting across two lines, etc.). Long text columns
+   (customer / pit / job / product / ticket) are left to wrap naturally. */
+.billing-table td:nth-child(1),     /* Line N */
+.billing-table th:nth-child(1),
+.billing-table td:nth-child(2),     /* Truck # */
+.billing-table th:nth-child(2),
+.billing-table td:nth-child(7),     /* Truck type */
+.billing-table th:nth-child(7),
+.billing-table td:nth-child(9),     /* Start time */
+.billing-table th:nth-child(9),
+.billing-table td:nth-child(10),    /* End time */
+.billing-table th:nth-child(10),
+.billing-table td:nth-child(11),    /* Total tons */
+.billing-table th:nth-child(11),
+.billing-table td:nth-child(12),    /* Total # of loads */
+.billing-table th:nth-child(12),
+.billing-table td:nth-child(13),    /* Total Time */
+.billing-table th:nth-child(13),
+.billing-table td:nth-child(14),    /* Hrs (decimal) */
+.billing-table th:nth-child(14),
+.billing-table td:nth-child(15),    /* Submissions */
+.billing-table th:nth-child(15) {
   white-space: nowrap;
 }
 
