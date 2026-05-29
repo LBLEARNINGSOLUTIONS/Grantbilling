@@ -22,10 +22,10 @@ export interface RawCSVRow {
   "Customer / Delivery Name": string;
   "Material Type": string;
   "Ticket Number": string;
-  "Job Start Time": string;
-  "Job End Time": string;
-  "Total tons": string;
-  "Number of Loads": string;
+  "Left the yard": string;
+  "Returned to yard": string;
+  "Total Tons": string;
+  "Loads on this Trip": string;
   // Allow additional properties from CSV that we'll ignore
   [key: string]: string;
 }
@@ -35,7 +35,15 @@ export interface RawCSVRow {
  * Must match exactly (case-sensitive, punctuation-sensitive) — header
  * normalization in csvParser.ts already handles dash/whitespace variants.
  */
-export const REQUIRED_INPUT_HEADERS: readonly string[] = [
+/**
+ * Required column "slots". Each slot is either a single header name (which
+ * must be present in the CSV) or an array of acceptable variants — the slot
+ * passes when at least one variant exists. Variants exist for the four
+ * fields that were renamed mid-2026 when Maggie reworked the form; Samsara
+ * exports both old and new columns side-by-side, with each submission
+ * populating whichever set was current at submission time.
+ */
+export const REQUIRED_INPUT_HEADERS: readonly (string | readonly string[])[] = [
   "Submitted By",
   "Submission Date & Time",
   "Who are you running for?",
@@ -46,10 +54,10 @@ export const REQUIRED_INPUT_HEADERS: readonly string[] = [
   "Customer / Delivery Name",
   "Material Type",
   "Ticket Number",
-  "Job Start Time",
-  "Job End Time",
-  "Total tons",
-  "Number of Loads",
+  ["Left the yard", "Job Start Time"],
+  ["Returned to yard", "Job End Time"],
+  ["Total Tons", "Total tons"],
+  ["Loads on this Trip", "Number of Loads"],
 ] as const;
 
 // =============================================================================
@@ -190,24 +198,30 @@ export interface GroupedBillingRow {
 
 /**
  * Mapping from BillingRow keys to RawCSVRow column names.
- * This is the single place column names are wired between input and output.
  * "Issue(s)" is excluded — it's a derived advisory note, not a CSV column.
+ *
+ * A value can be a single string OR an array of strings to try in order. The
+ * transformer reads the first non-empty value across the list so a row that
+ * was submitted before a column was renamed still resolves correctly. The
+ * duplicate "Which Pit?" column (which Samsara emits because the form had
+ * the question twice over its history) is disambiguated by csvParser.ts to
+ * "Which Pit? (2)" so we can read both occurrences here.
  */
-export const COLUMN_MAPPING: Record<Exclude<keyof BillingRow, "Issue(s)">, string> = {
+export const COLUMN_MAPPING: Record<Exclude<keyof BillingRow, "Issue(s)">, string | readonly string[]> = {
   "Submitted By": "Submitted By",
   "Submission Date & Time": "Submission Date & Time",
   "Who are you running for?": "Who are you running for?",
   "Truck #": "Truck Number",
   "North/South job": "Region",
-  "Pit/Pick up name": "Which Pit?",
+  "Pit/Pick up name": ["Which Pit?", "Which Pit? (2)"],
   "Job/Delivery name": "Customer / Delivery Name",
   "Product type": "Material Type",
   "Ticket # or Multi": "Ticket Number",
   "Truck type": "What type of truck?",
-  "Start time": "Job Start Time",
-  "End time": "Job End Time",
-  "Total tons": "Total tons",
-  "Total # of loads": "Number of Loads",
+  "Start time": ["Left the yard", "Job Start Time"],
+  "End time": ["Returned to yard", "Job End Time"],
+  "Total tons": ["Total Tons", "Total tons"],
+  "Total # of loads": ["Loads on this Trip", "Number of Loads"],
 };
 
 // =============================================================================

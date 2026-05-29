@@ -125,3 +125,76 @@ describe("billing pipeline fixes", () => {
     expect(grouped.length).toBe(6);
   });
 });
+
+// =============================================================================
+// Mixed-columns CSV: Samsara now exports BOTH old and new column names side
+// by side after Maggie's mid-2026 form edits. Submissions made before the
+// rename populate the OLD columns; submissions made after populate the NEW
+// ones. The header also has a duplicate "Which Pit?" column (an artifact of
+// the form's conditional follow-up questions) — for North-region submissions
+// the value lives in the second occurrence; for South, the first.
+// =============================================================================
+
+const MIXED_FIXTURE_PATH = join(__dirname, "fixtures", "mixed_columns.csv");
+const mixedCsvContent = readFileSync(MIXED_FIXTURE_PATH, "utf-8");
+
+describe("mixed old/new column handling", () => {
+  it("Test E — rows with OLD loads/tons columns are read via fallback", async () => {
+    const result = await processFile(
+      new File([mixedCsvContent], "mixed_columns.csv", { type: "text/csv" })
+    );
+
+    // The "old-loads" row (Steve Davis, truck 24, Brigham City, Tycon, road
+    // base) has blank NEW Total Tons / Loads on this Trip and populated OLD
+    // Total tons (38.50) / Number of Loads (3). The fallback must surface
+    // those values into the BillingRow.
+    const oldLoadsRow = result.validRows.find(
+      (r) => r["Submitted By"] === "Steve Davis" && r["Truck #"] === "24"
+    );
+    expect(oldLoadsRow).toBeDefined();
+    expect(oldLoadsRow!["Total tons"]).toBe("38.50");
+    expect(oldLoadsRow!["Total # of loads"]).toBe("3");
+  });
+
+  it("Test F — duplicate 'Which Pit?' columns resolve correctly per region", async () => {
+    const result = await processFile(
+      new File([mixedCsvContent], "mixed_columns.csv", { type: "text/csv" })
+    );
+
+    // North-region row: pit value lives in the SECOND "Which Pit?" column
+    // (which csvParser renames to "Which Pit? (2)"). Falls back through.
+    const north = result.validRows.find(
+      (r) =>
+        r["Submitted By"] === "Clint Dahl" &&
+        r["North/South job"] === "North" &&
+        r["Job/Delivery name"] === "BODEC INC."
+    );
+    expect(north).toBeDefined();
+    expect(north!["Pit/Pick up name"]).toBe("Maguire");
+
+    // South-region row: pit value lives in the FIRST "Which Pit?" column.
+    const south = result.validRows.find(
+      (r) =>
+        r["Submitted By"] === "Clint Dahl" &&
+        r["North/South job"] === "South" &&
+        r["Job/Delivery name"] === "NEPHI CO"
+    );
+    expect(south).toBeDefined();
+    expect(south!["Pit/Pick up name"]).toBe("Nebo");
+  });
+
+  it("Test G — rows missing Truck Number (older submissions) route to exceptions", async () => {
+    const result = await processFile(
+      new File([mixedCsvContent], "mixed_columns.csv", { type: "text/csv" })
+    );
+
+    // Tim Sacre's row has blank Truck Number — would have been a valid row
+    // before Maggie added the truck-number question. It must surface in the
+    // Exceptions tab with a clear message rather than silently vanish.
+    const exceptions = result.exceptionRows.filter(
+      (r) => r["Submitted By"] === "Tim Sacre"
+    );
+    expect(exceptions.length).toBe(1);
+    expect(exceptions[0]["Issue(s)"]).toContain("Truck # is required");
+  });
+});

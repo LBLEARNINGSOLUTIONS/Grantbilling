@@ -36,10 +36,10 @@ Then open http://localhost:5173 in your browser.
 | Product type | Material Type |
 | Ticket # or Multi | Ticket Number (blank → "MULTI") |
 | Truck type | What type of truck? |
-| Start time | Job Start Time (HH:MM or full datetime) |
-| End time | Job End Time (HH:MM or full datetime) |
-| Total tons | Total tons |
-| Total # of loads | Number of Loads |
+| Start time | Left the yard (HH:MM or full datetime) |
+| End time | Returned to yard (HH:MM or full datetime) |
+| Total tons | Total Tons |
+| Total # of loads | Loads on this Trip |
 
 ## Grouping (Billing Line Items)
 
